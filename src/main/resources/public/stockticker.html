@@ -1,0 +1,119 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Stock Ticker</title>
+
+    <script type="text/javascript" src="jquery-1.8.1.js"></script>
+    <script type="text/javascript">
+        $(document).ready(
+                function() {
+                    Highcharts.setOptions({
+                        global : {
+                            useUTC : false
+                        }
+                    });
+
+                    var chart;
+                    document.chart = new Highcharts.Chart({
+                        chart : {
+                            renderTo : 'container',
+                            defaultSeriesType : 'spline',
+                            marginRight : 10,
+                            plotBackgroundColor : '#FFFFFF',
+                            plotShadow : true,
+                            animation : {
+                                duration : 200
+                            }
+                        },
+                        title : {
+                            text : 'Stock Price'
+                        },
+                        xAxis : {
+                            type : 'datetime',
+                            tickPixelInterval : 150
+                        },
+                        yAxis : {
+                            title : {
+                                text : 'Price ($)'
+                            },
+                            plotLines : [ {
+                                value : 0,
+                                width : 2,
+                                color : '#808080'
+                            } ]
+                        },
+                        tooltip : {
+                            formatter : function() {
+                                return '<b>'
+                                        + this.series.name
+                                        + '</b><br/>'
+                                        + Highcharts.dateFormat(
+                                                '%Y-%m-%d %H:%M:%S', this.x)
+                                        + '<br/>$'
+                                        + Highcharts.numberFormat(this.y, 2);
+                            }
+                        },
+                        legend : {
+                            enabled : true
+                        },
+                        exporting : {
+                            enabled : false
+                        },
+                        series : []
+                    });
+                });
+    </script>
+</head>
+<body>
+<script type="text/javascript" src="js/highcharts.js"></script>
+<script type="text/javascript" src="js/modules/exporting.js"></script>
+
+<div id="container" style="width: 80%; height: 80%; margin: 0 auto"></div>
+
+<script type="text/javascript">
+    var loc = window.location, wsUri;
+    if (loc.protocol === "https:") {
+        wsUri = "wss:";
+    } else {
+        wsUri = "ws:";
+    }
+    wsUri += "//" + loc.host + "/websocket/stock";
+    websocket = new WebSocket(wsUri);
+
+    var seriesArray = new Array();
+
+    websocket.onmessage = function (event) {
+        var object = JSON.parse(event.data);
+        var x = (new Date()).getTime();
+        var y = object.price;
+        var series = seriesArray.indexOf(object.symbol);
+
+        if (series == -1) {
+            var seriesName = object.symbol;
+            document.chart.addSeries({
+                name: seriesName,
+                data: defaultData()
+            });
+            seriesArray.push(seriesName);
+            series = seriesArray.length - 1;
+        }
+        document.chart.series[series].addPoint([ x, y ], true, true,
+                false);
+    }
+
+    function defaultData() {
+        var data = [];
+        var time = (new Date()).getTime();
+        var i;
+        for (i = -19; i <= 0; i++) {
+            data.push({
+                x : time + i * 1000,
+                y : 0
+            });
+        }
+        return data;
+    }
+</script>
+
+</body>
+</html>
